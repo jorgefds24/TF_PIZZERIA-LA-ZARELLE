@@ -1,0 +1,240 @@
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+double totalPedidos = 0;
+
+struct Menu{
+    int Id_menu;
+    string Nombre;
+    float Precio;
+};
+
+struct Producto {
+    int Id;
+    string Nombre;
+    float Precio;
+};
+
+struct PizzaArbol {
+    Menu* info;
+    PizzaArbol* izq;
+    PizzaArbol* der;
+};
+
+vector<Producto> carrito;
+double aux = 0;
+
+bool arbol_vacio(PizzaArbol* a) {
+    return a == NULL;
+}
+
+Menu* buscarPorId(PizzaArbol* a, int Id_menu)
+{
+    if (arbol_vacio(a))
+        return nullptr;
+
+    if (a->info->Id_menu == Id_menu)
+        return a->info;
+
+    Menu* encontrado = buscarPorId(a->izq, Id_menu);
+    if (encontrado != nullptr)
+        return encontrado;
+
+    return buscarPorId(a->der, Id_menu);
+}
+
+PizzaArbol* arbol_crea(Menu* v, PizzaArbol* i, PizzaArbol* d)
+{
+    PizzaArbol* p = new PizzaArbol;
+    p->info = v;
+    p->izq = i;
+    p->der = d;
+    return p;
+}
+
+void arbol_imprime(PizzaArbol* a) {
+    if (!arbol_vacio(a)) {
+        cout << "ID: " << a->info->Id_menu << endl;
+        cout << "Nombre: " << a->info->Nombre << endl;
+        cout << "Precio: " << a->info->Precio << endl << endl;
+        arbol_imprime(a->izq);
+        arbol_imprime(a->der);
+    }
+}
+
+PizzaArbol* arbol_libera(PizzaArbol* a)
+{
+    if (!arbol_vacio(a)) {
+        arbol_libera(a->izq);
+        arbol_libera(a->der);
+        delete a;
+    }
+    return NULL;
+}
+
+void imprimirCarrito() {
+    cout << "\n---- Carrito de Compras ----" << endl;
+
+    for (auto& producto : carrito) {
+        cout << "ID: " << producto.Id << endl;
+        cout << "Nombre: " << producto.Nombre << endl;
+        cout << "Precio: " << producto.Precio << endl << endl;
+    }
+
+    cout << "Total carrito: " << aux << endl;
+    cout << "----------------------------" << endl;
+}
+
+void vaciarCarrito() {
+    carrito.clear();
+    aux = 0;
+}
+
+void imprimirPedidos(vector<Menu>& pedidos) {
+    cout << "\n---- Pedidos Realizados ----" << endl;
+
+    for (auto& pedido : pedidos) {
+        cout << "ID: " << pedido.Id_menu << endl;
+        cout << "Nombre: " << pedido.Nombre << endl;
+        cout << "Precio: " << pedido.Precio << endl << endl;
+    }
+
+    cout << "Total vendido: " << totalPedidos << endl;
+    cout << "Cantidad de pizzas vendidas: " << pedidos.size() << endl;
+    cout << "----------------------------" << endl;
+}
+
+void solicitarPedido(vector<Menu>& pedidos, PizzaArbol* arbol)
+{
+    if (arbol == NULL) {
+        cout << "El arbol fue liberado. No se pueden realizar pedidos." << endl;
+        return;
+    }
+
+    int continuar = 1;
+
+    while (continuar == 1) {
+
+        cout << "\n[1] Pizza americana" << endl;
+        cout << "[2] Pizza peperonni" << endl;
+        cout << "[3] Pizza hawaiana" << endl;
+        cout << "[4] Pizza carne" << endl;
+        cout << "[5] Pizza vegetariana" << endl;
+        cout << "[6] Pizza P&J" << endl;
+        cout << "Opcion: ";
+
+        int opc;
+        cin >> opc;
+
+        int id = 1000 + opc;
+        Menu* buscador = buscarPorId(arbol, id);
+
+        if (buscador == nullptr) {
+            cout << "Pizza no encontrada." << endl;
+        } else {
+            cout << "Precio: " << buscador->Precio << endl;
+            cout << "Agregar al carrito? 1-SI / 0-NO: ";
+            int agregar;
+            cin >> agregar;
+
+            if (agregar == 1) {
+                Producto producto;
+                producto.Id = buscador->Id_menu;
+                producto.Nombre = buscador->Nombre;
+                producto.Precio = buscador->Precio;
+
+                carrito.push_back(producto);
+                aux += buscador->Precio;
+            }
+        }
+
+        cout << "Seguir agregando? 1-SI / 0-NO: ";
+        cin >> continuar;
+    }
+
+    imprimirCarrito();
+
+    cout << "Confirmar pedido? 1-SI / 0-NO: ";
+    int confirmar;
+    cin >> confirmar;
+
+    if (confirmar == 1) {
+        cout << "Pedido confirmado.\n";
+
+        for (auto& p : carrito) {
+            Menu pedido;
+            pedido.Id_menu = p.Id;
+            pedido.Nombre = p.Nombre;
+            pedido.Precio = p.Precio;
+            pedidos.push_back(pedido);
+        }
+
+        totalPedidos += aux;
+        vaciarCarrito();
+    } else {
+        cout << "Pedido cancelado.\n";
+        vaciarCarrito();
+    }
+}
+
+int main()
+{
+    Menu q = { 1001,"Pizza americana",15.50 };
+    Menu e = { 1002,"Pizza peperonni",17.50 };
+    Menu r = { 1003,"Pizza hawaiana",12.50 };
+    Menu y = { 1004,"Pizza carne",22.50 };
+    Menu u = { 1005,"Pizza vegetariana",15.50 };
+    Menu i = { 1006,"Pizza P&J",24.50 };
+
+    PizzaArbol* a = arbol_crea(&q,
+                    arbol_crea(&e, NULL, arbol_crea(&r, NULL, NULL)),
+                    arbol_crea(&y, arbol_crea(&u, NULL, NULL), arbol_crea(&i, NULL, NULL))
+                    );
+
+    vector<Menu> pedidos;
+
+    int programa = -1;
+
+    while (programa != 0) {
+        cout << "\n-----------------------------------" << endl;
+        cout << "[1] Imprimir menu" << endl;
+        cout << "[2] Solicitar pedido" << endl;
+        cout << "[3] Ver pedidos realizados" << endl;
+        cout << "[4] Liberar arbol" << endl;
+        cout << "[0] Cerrar Programa" << endl;
+        cout << "-----------------------------------" << endl;
+        cout << "Opcion: ";
+
+        cin >> programa;
+
+        switch (programa) {
+        case 1:
+            arbol_imprime(a);
+            break;
+
+        case 2:
+            solicitarPedido(pedidos, a);
+            break;
+
+        case 3:
+            imprimirPedidos(pedidos);
+            break;
+
+        case 4:
+            a = arbol_libera(a);
+            cout << "Arbol liberado.\n";
+            break;
+
+        case 0:
+            break;
+
+        default:
+            cout << "Opcion invalida.\n";
+        }
+    }
+
+    return 0;
+}
